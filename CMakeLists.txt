@@ -9,9 +9,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_library(ecml)
 add_library(ecml::ecml ALIAS ecml)
 
+target_sources(ecml
+  PRIVATE
+    src/ecml_rawsocket.cpp
+)
+
 target_include_directories(ecml
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DUR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
   PRIVATE
     src
