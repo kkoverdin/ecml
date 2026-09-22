@@ -1,7 +1,5 @@
 #include "ecml/ecml_rawsocket.hpp"
 
-#if defined(__linux__)
-
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
@@ -12,17 +10,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#endif
-
 namespace ecml::network {
 
 void RawSocket::close() noexcept {
-#if defined(__linux__)
   if (fd_ >= 0) {
     ::close(fd_);
     fd_ = -1;
   }
-#endif
 }
 
 RawSocket::~RawSocket() noexcept { close(); }
@@ -42,42 +36,31 @@ RawSocket &RawSocket::operator=(RawSocket &&other) noexcept {
 
 bool RawSocket::isOpen() const noexcept { return fd_ >= 0; }
 ssize_t RawSocket::send(std::span<const std::byte> frame) noexcept {
-#if defined(__linux__)
   return ::send(fd_, frame.data(), frame.size(), 0);
-#else
-  (void)frame;
-  return -1;
-#endif
 }
 
 ssize_t RawSocket::receive(std::span<std::byte> destination) noexcept {
-#if defined(__linux__)
   return ::recv(fd_, destination.data(), destination.size(), MSG_DONTWAIT);
-#else
-  (void)destination;
-  return -1;
-#endif
 }
 
 RawSocket::RawSocket(int fd) noexcept : fd_{fd} {}
 
 std::optional<RawSocket> RawSocket::open(std::string_view ifname,
                                          uint16_t ether_type) noexcept {
-#if defined(__linux__)
+  if (ifname.empty() || ifname.size() >= IFNAMSIZ) {
+    return std::nullopt;
+  }
   int fd = ::socket(PF_PACKET, SOCK_RAW, htons(ether_type));
   if (fd < 0) {
     return std::nullopt;
   }
-  if (ifname.empty() || ifname.size() >= IFNAMSIZ) {
-    return std::nullopt;
-  }
-  struct ifreq ifr{};
+  struct ifreq ifr {};
   std::copy(ifname.data(), ifname.data() + ifname.size(), ifr.ifr_name);
   if (::ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
     ::close(fd);
     return std::nullopt;
   }
-  struct sockaddr_ll sll{};
+  struct sockaddr_ll sll {};
   sll.sll_family = AF_PACKET;
   sll.sll_ifindex = ifr.ifr_ifindex;
   sll.sll_protocol = htons(ether_type);
@@ -86,9 +69,6 @@ std::optional<RawSocket> RawSocket::open(std::string_view ifname,
     return std::nullopt;
   }
   return RawSocket{fd};
-#else
-  return std::nullopt;
-#endif
 }
 
 } // namespace ecml::network
