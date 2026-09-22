@@ -15,10 +15,13 @@ if (NOT TARGET GTest::gtest_main)
   FetchContent_MakeAvailable(googletest)
 endif()
 
-add_executable(ecml_tests)
+add_executable(ecml_tests test_rawsocket.cpp)
 
 target_link_libraries(ecml_tests
   PRIVATE
     ecml::ecml
     GTest::gtest_main
 )
+
+include(GoogleTest)
+gtest_discover_tests(ecml_tests)
