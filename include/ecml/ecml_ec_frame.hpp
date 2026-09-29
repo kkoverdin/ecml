@@ -101,10 +101,55 @@ struct DatagramHeader {
   // if destination.size() < 10 returns false
   bool serialize(std::span<std::byte> destination) const noexcept;
 
-  // constructs ethercat header from first ten bytes of source
+  // constructs datagram header from first ten bytes of source
   // if source.size() < 10 returns std::nullopt_t
   [[nodiscard]] static std::optional<DatagramHeader>
   deserialize(std::span<const std::byte> source) noexcept;
+};
+
+class Datagram {
+public:
+  static constexpr size_t kMaxPayloadSize{1486};
+
+  Datagram() = delete;
+
+  // construct datagram with given header data and wkc
+  // if data.size() > 1486 returns std::nullopt_t
+  // len field of given header is ignored
+  // in returned object header_.len = static_cast<uint16_t>(data.size())
+  [[nodiscard]] static std::optional<Datagram>
+  create(DatagramHeader header, std::span<std::byte> data, uint16_t wkc = 0);
+
+  const DatagramHeader &header() const noexcept;
+  std::span<std::byte> data() noexcept;
+  std::span<const std::byte> data() const noexcept;
+  uint16_t wkc() const noexcept;
+  // 10 + data.size() + 2;
+  size_t size() const noexcept;
+
+  // wrties this->size() bytes in destination
+  // uses serialize method of DatagramHeader
+  // return true if all bytes were successfully written
+  // if destination.size() < this->size() returns false
+  bool serialize(std::span<std::byte> destination) const noexcept;
+
+  // construct datagram from first 10 + header.len + 2 bytes
+  // supposing first 10 bytes is datagram header
+  // last 2 bytes is working counter
+  // and header.len() bytes in between is data
+  // if source.size() < 12 return std::nullopt_t
+  // uses deserialize method if DatagramHeader
+  // if DatagramHeader::deserialize returns std::nullopt_t
+  // this method returns std::nullopt_t
+  // otherwise if source.size() < 10 + header.len + 2 returns std::nullopt_t
+  [[nodiscard]] static std::optional<Datagram>
+  deserialize(std::span<std::byte> source) noexcept;
+
+private:
+  Datagram(DatagramHeader header, std::span<std::byte> data, uint16_t wkc = 0);
+  DatagramHeader header_;
+  std::span<std::byte> data_; // Datagram doesnt owns data
+  uint16_t wkc_{};
 };
 
 } // namespace ecml::protocol
