@@ -28,11 +28,13 @@ public:
   // later can be change in favor of error wrapper struct
   // 0x88A4 is a standard EtherType for EtherCat
   [[nodiscard]] static std::optional<RawSocket>
-  open(std::string_view, uint16_t ether_type = default_ether_type) noexcept;
+  open(std::string_view ifname,
+       uint16_t ether_type = default_ether_type) noexcept;
   // return false only if object was moved-from
   [[nodiscard]] bool isOpen() const noexcept;
-  [[nodiscard]] ssize_t send(std::span<const std::byte> frame) noexcept;
-  [[nodiscard]] ssize_t receive(std::span<std::byte> destination) noexcept;
+  [[nodiscard]] ssize_t send(std::span<const std::byte> frame) const noexcept;
+  [[nodiscard]] ssize_t
+  receive(std::span<std::byte> destination) const noexcept;
 
 private:
   RawSocket(int file_descriptor) noexcept;
