@@ -43,32 +43,36 @@ ssize_t RawSocket::receive(std::span<std::byte> destination) noexcept {
   return ::recv(fd_, destination.data(), destination.size(), MSG_DONTWAIT);
 }
 
-RawSocket::RawSocket(int fd) noexcept : fd_{fd} {}
+RawSocket::RawSocket(int file_descriptor) noexcept : fd_{file_descriptor} {}
 
 std::optional<RawSocket> RawSocket::open(std::string_view ifname,
                                          uint16_t ether_type) noexcept {
   if (ifname.empty() || ifname.size() >= IFNAMSIZ) {
     return std::nullopt;
   }
-  int fd = ::socket(PF_PACKET, SOCK_RAW, htons(ether_type));
-  if (fd < 0) {
+  int file_descriptor = ::socket(PF_PACKET, SOCK_RAW, htons(ether_type));
+  if (file_descriptor < 0) {
     return std::nullopt;
   }
   struct ifreq ifr {};
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   std::copy(ifname.data(), ifname.data() + ifname.size(), ifr.ifr_name);
-  if (::ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
-    ::close(fd);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+  if (::ioctl(file_descriptor, SIOCGIFINDEX, &ifr) < 0) {
+    ::close(file_descriptor);
     return std::nullopt;
   }
   struct sockaddr_ll sll {};
   sll.sll_family = AF_PACKET;
   sll.sll_ifindex = ifr.ifr_ifindex;
   sll.sll_protocol = htons(ether_type);
-  if (::bind(fd, reinterpret_cast<struct sockaddr *>(&sll), sizeof(sll)) < 0) {
-    ::close(fd);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (::bind(file_descriptor, reinterpret_cast<struct sockaddr *>(&sll),
+             sizeof(sll)) < 0) {
+    ::close(file_descriptor);
     return std::nullopt;
   }
-  return RawSocket{fd};
+  return RawSocket{file_descriptor};
 }
 
 } // namespace ecml::network
