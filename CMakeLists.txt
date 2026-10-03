@@ -1,45 +1,54 @@
-cmake_minimum_required(VERSION 3.21)
-project(ecml)
+cmake_minimum_required(VERSION 3.20)
+project(ecml LANGUAGES CXX)
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  message(FATAL_ERROR "ECML supports only Linux")
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-include(CompilerWarnings)
-include(Sanitizers)
-include(StaticAnalyzers)
+option(ECML_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
+option(ECML_ENABLE_SANITIZERS "Enable ASan and UBSan" ON)
+option(ECML_BUILD_TESTS "Build unit/integration tests" ON)
 
-setup_static_analyzers()
+include(cmake/CompilerWarnings.cmake)
+include(cmake/Sanitizers.cmake)
+include(cmake/StaticAnalyzers.cmake)
 
+# warnings
 add_library(ecml_warnings INTERFACE)
-set_project_warnings(ecml_warnings)
+ecml_set_compiler_warnings(ecml_warnings ${ECML_WARNINGS_AS_ERRORS})
 
+# sanitizers
 add_library(ecml_sanitizers INTERFACE)
-enable_sanitizers(ecml_sanitizers)
+ecml_configure_sanitizers(ecml_sanitizers ${ECML_ENABLE_SANITIZERS})
 
-add_library(ecml)
-add_library(ecml::ecml ALIAS ecml)
-
-target_sources(ecml
-  PRIVATE
+# main lib
+add_library(ecml STATIC
     src/ecml_rawsocket.cpp
 )
 
 target_include_directories(ecml
-  PUBLIC
-<<<<<<< HEAD
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-=======
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
->>>>>>> origin/main
-    $<INSTALL_INTERFACE:include>
-  PRIVATE
-    src
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(ecml PRIVATE ecml_warnings)
+# warnings links private 
+target_link_libraries(ecml
+    PUBLIC
+        ecml_sanitizers
+    PRIVATE
+        ecml_warnings
+)
 
-include(CTest)
-if (BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
+# static analyzers so as not to impose strict flags on external projects
+ecml_configure_static_analyzers(ecml)
+
+if(ECML_BUILD_TESTS)
+  enable_testing()
   add_subdirectory(tests)
 endif()
