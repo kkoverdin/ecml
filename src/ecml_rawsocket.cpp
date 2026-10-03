@@ -35,11 +35,11 @@ RawSocket &RawSocket::operator=(RawSocket &&other) noexcept {
 }
 
 bool RawSocket::isOpen() const noexcept { return fd_ >= 0; }
-ssize_t RawSocket::send(std::span<const std::byte> frame) noexcept {
+ssize_t RawSocket::send(std::span<const std::byte> frame) const noexcept {
   return ::send(fd_, frame.data(), frame.size(), 0);
 }
 
-ssize_t RawSocket::receive(std::span<std::byte> destination) noexcept {
+ssize_t RawSocket::receive(std::span<std::byte> destination) const noexcept {
   return ::recv(fd_, destination.data(), destination.size(), MSG_DONTWAIT);
 }
 

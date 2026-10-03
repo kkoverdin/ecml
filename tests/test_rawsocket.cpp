@@ -79,7 +79,8 @@ TEST(RawSocketIntegration, SendAndReceiveEthernetFrame) {
   frame[13] = std::byte{0xA4};
   std::array<std::byte, 1514> rx_buffer{};
   // Act
-  auto send_res = tx_sock.value().send(frame);
+  const auto send_res = tx_sock.value().send(frame);
+  EXPECT_GT(send_res, 0);
   usleep(1000);
   auto rec_res = rx_sock.value().receive(rx_buffer);
   // Assert
