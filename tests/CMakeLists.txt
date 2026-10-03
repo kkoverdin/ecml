@@ -21,6 +21,8 @@ target_link_libraries(ecml_tests
   PRIVATE
     ecml::ecml
     GTest::gtest_main
+    ecml_warnings
+    ecml_sanitizers
 )
 
 include(GoogleTest)
