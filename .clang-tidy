@@ -1,12 +1,13 @@
 Checks: >
   -*,
   bugprone-*,
-  cert-*,
   clang-analyzer-*,
   cppcoreguidelines-*,
   modernize-*,
   performance-*,
-  readability-*
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -cppcoreguidelines-pro-type-reinterpret-cast
 
 HeaderFilterRegex: 'ecml/.*'
 WarningsAsErrors: '*'
