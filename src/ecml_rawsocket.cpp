@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <arpa/inet.h>
+#include <cerrno>
 #include <cstring>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
@@ -35,8 +36,35 @@ RawSocket &RawSocket::operator=(RawSocket &&other) noexcept {
 }
 
 bool RawSocket::isOpen() const noexcept { return fd_ >= 0; }
-ssize_t RawSocket::send(std::span<const std::byte> frame) const noexcept {
-  return ::send(fd_, frame.data(), frame.size(), 0);
+SendResult RawSocket::send(std::span<const std::byte> frame) const noexcept {
+  if (fd_ < 0) {
+    return {SendStatus::InvalidSocket, std::nullopt};
+  }
+  if (frame.empty()) {
+    return {SendStatus::EmptyBuffer, std::nullopt};
+  }
+  ssize_t res = ::send(fd_, frame.data(), frame.size(), MSG_DONTWAIT);
+  if (res > 0) {
+    if (static_cast<size_t>(res) == frame.size()) {
+      return {SendStatus::Success, std::nullopt};
+    }
+    return {SendStatus::BadSend, std::nullopt};
+  }
+  if (res == 0) {
+    return {SendStatus::BadSend, std::nullopt};
+  }
+  int cache_errno{errno};
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+  if ((cache_errno == EAGAIN) || (cache_errno == EWOULDBLOCK)) {
+#else
+  if (cache_errno == EAGAIN) {
+#endif
+    return {SendStatus::WouldBlock, std::nullopt};
+  }
+  if (cache_errno == EINTR) {
+    return {SendStatus::Interrupted, std::nullopt};
+  }
+  return {SendStatus::SystemError, cache_errno};
 }
 
 ssize_t RawSocket::receive(std::span<std::byte> destination) const noexcept {
@@ -50,7 +78,8 @@ std::optional<RawSocket> RawSocket::open(std::string_view ifname,
   if (ifname.empty() || ifname.size() >= IFNAMSIZ) {
     return std::nullopt;
   }
-  int file_descriptor = ::socket(PF_PACKET, SOCK_RAW, htons(ether_type));
+  int file_descriptor = ::socket(
+      PF_PACKET, SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ether_type));
   if (file_descriptor < 0) {
     return std::nullopt;
   }

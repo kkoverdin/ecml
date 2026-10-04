@@ -80,7 +80,7 @@ TEST(RawSocketIntegration, SendAndReceiveEthernetFrame) {
   std::array<std::byte, 1514> rx_buffer{};
   // Act
   const auto send_res = tx_sock.value().send(frame);
-  EXPECT_GT(send_res, 0);
+  EXPECT_EQ(send_res.status, ecml::network::SendStatus::Success);
   usleep(1000);
   auto rec_res = rx_sock.value().receive(rx_buffer);
   // Assert
