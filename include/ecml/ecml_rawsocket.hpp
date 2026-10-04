@@ -8,6 +8,22 @@
 #include <sys/types.h>
 
 namespace ecml::network {
+
+enum class SendStatus : uint8_t {
+  Success,       // socket sended exactly frame.size() bytes
+  WouldBlock,    // requested operation would block
+  Interrupted,   // kernel interrupted send
+  SystemError,   // system error
+  InvalidSocket, // calling send on closed socket
+  EmptyBuffer,   // frame.size() == 0
+  BadSend        // send syscall return < frame.size()
+};
+
+struct SendResult {
+  SendStatus status{SendStatus::Success};
+  std::optional<int> error_code; // only for SendStatus::SystemError
+};
+
 // RAII socket wrapper
 // needed since EtherCat works on data link layer (OSI)
 class RawSocket {
@@ -32,7 +48,8 @@ public:
        uint16_t ether_type = default_ether_type) noexcept;
   // return false only if object was moved-from
   [[nodiscard]] bool isOpen() const noexcept;
-  [[nodiscard]] ssize_t send(std::span<const std::byte> frame) const noexcept;
+  [[nodiscard]] SendResult
+  send(std::span<const std::byte> frame) const noexcept;
   [[nodiscard]] ssize_t
   receive(std::span<std::byte> destination) const noexcept;
 
