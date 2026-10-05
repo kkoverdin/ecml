@@ -37,59 +37,92 @@ RawSocket &RawSocket::operator=(RawSocket &&other) noexcept {
 
 bool RawSocket::isOpen() const noexcept { return fd_ >= 0; }
 SendResult RawSocket::send(std::span<const std::byte> frame) const noexcept {
-  if (fd_ < 0) {
-    return {SendStatus::InvalidSocket, std::nullopt};
+  if (!isOpen()) {
+    return {SendResult::Status::InvalidSocket};
   }
   if (frame.empty()) {
-    return {SendStatus::EmptyBuffer, std::nullopt};
+    return {SendResult::Status::EmptyBuffer};
   }
   ssize_t res = ::send(fd_, frame.data(), frame.size(), MSG_DONTWAIT);
   if (res > 0) {
     if (static_cast<size_t>(res) == frame.size()) {
-      return {SendStatus::Success, std::nullopt};
+      return {SendResult::Status::Success, static_cast<size_t>(res)};
     }
-    return {SendStatus::BadSend, std::nullopt};
+    return {SendResult::Status::BadSend, static_cast<size_t>(res)};
   }
   if (res == 0) {
-    return {SendStatus::BadSend, std::nullopt};
+    return {SendResult::Status::BadSend};
   }
-  int cache_errno{errno};
+  int saved_errno{errno};
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-  if ((cache_errno == EAGAIN) || (cache_errno == EWOULDBLOCK)) {
+  if ((saved_errno == EAGAIN) || (saved_errno == EWOULDBLOCK)) {
 #else
-  if (cache_errno == EAGAIN) {
+  if (saved_errno == EAGAIN) {
 #endif
-    return {SendStatus::WouldBlock, std::nullopt};
+    return {SendResult::Status::WouldBlock};
   }
-  if (cache_errno == EINTR) {
-    return {SendStatus::Interrupted, std::nullopt};
+  if (saved_errno == EINTR) {
+    return {SendResult::Status::Interrupted};
   }
-  return {SendStatus::SystemError, cache_errno};
+  return {SendResult::Status::SystemError, 0, saved_errno};
 }
 
-ssize_t RawSocket::receive(std::span<std::byte> destination) const noexcept {
-  return ::recv(fd_, destination.data(), destination.size(), MSG_DONTWAIT);
+ReceiveResult
+RawSocket::receive(std::span<std::byte> destination) const noexcept {
+  if (!isOpen()) {
+    return {ReceiveResult::Status::InvalidSocket};
+  }
+  if (destination.empty()) {
+    return {ReceiveResult::Status::EmptyBuffer};
+  }
+  ssize_t ret = ::recv(fd_, destination.data(), destination.size(),
+                       MSG_DONTWAIT | MSG_TRUNC);
+  if (ret >= 0) {
+    auto total_wire_bytes = static_cast<size_t>(ret);
+    if (total_wire_bytes <= destination.size()) {
+      return {ReceiveResult::Status::Success, total_wire_bytes,
+              total_wire_bytes};
+    }
+    return {ReceiveResult::Status::Truncated, destination.size(),
+            total_wire_bytes};
+  }
+  int saved_errno = errno;
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+  if ((saved_errno == EAGAIN) || (saved_errno == EWOULDBLOCK)) {
+#else
+  if (saved_errno == EAGAIN) {
+#endif
+    return {ReceiveResult::Status::WouldBlock};
+  }
+  if (saved_errno == EINTR) {
+    return {ReceiveResult::Status::Interrupted};
+  }
+  return {ReceiveResult::Status::SystemError, 0, 0, saved_errno};
 }
 
 RawSocket::RawSocket(int file_descriptor) noexcept : fd_{file_descriptor} {}
 
-std::optional<RawSocket> RawSocket::open(std::string_view ifname,
-                                         uint16_t ether_type) noexcept {
-  if (ifname.empty() || ifname.size() >= IFNAMSIZ) {
-    return std::nullopt;
+OpenResult RawSocket::open(std::string_view ifname,
+                           uint16_t ether_type) noexcept {
+  if (ifname.empty() || ifname.size() > IFNAMSIZ) {
+    return {OpenResult::Status::InvalidInterfaceName, std::nullopt};
   }
   int file_descriptor = ::socket(
       PF_PACKET, SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ether_type));
   if (file_descriptor < 0) {
-    return std::nullopt;
+    int saved_errno = errno;
+    return {OpenResult::Status::SocketCreationFailed, std::nullopt,
+            saved_errno};
   }
   struct ifreq ifr {};
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-  std::copy(ifname.data(), ifname.data() + ifname.size(), ifr.ifr_name);
+  std::copy(ifname.begin(), ifname.end(), ifr.ifr_name);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
   if (::ioctl(file_descriptor, SIOCGIFINDEX, &ifr) < 0) {
+    int saved_errno = errno;
     ::close(file_descriptor);
-    return std::nullopt;
+    return {OpenResult::Status::InterfaceIndexNotFound, std::nullopt,
+            saved_errno};
   }
   struct sockaddr_ll sll {};
   sll.sll_family = AF_PACKET;
@@ -98,10 +131,11 @@ std::optional<RawSocket> RawSocket::open(std::string_view ifname,
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   if (::bind(file_descriptor, reinterpret_cast<struct sockaddr *>(&sll),
              sizeof(sll)) < 0) {
+    int saved_errno = errno;
     ::close(file_descriptor);
-    return std::nullopt;
+    return {OpenResult::Status::BindFailed, std::nullopt, saved_errno};
   }
-  return RawSocket{file_descriptor};
+  return {OpenResult::Status::Success, RawSocket{file_descriptor}};
 }
 
 } // namespace ecml::network
