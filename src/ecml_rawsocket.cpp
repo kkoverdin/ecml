@@ -104,7 +104,7 @@ RawSocket::RawSocket(int file_descriptor) noexcept : fd_{file_descriptor} {}
 
 OpenResult RawSocket::open(std::string_view ifname,
                            uint16_t ether_type) noexcept {
-  if (ifname.empty() || ifname.size() > IFNAMSIZ) {
+  if (ifname.empty() || ifname.size() >= IFNAMSIZ) {
     return {OpenResult::Status::InvalidInterfaceName, std::nullopt};
   }
   int file_descriptor = ::socket(
