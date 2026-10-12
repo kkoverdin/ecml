@@ -9,7 +9,7 @@ namespace ecml::protocol {
 
 struct MacDeserializeResult;
 
-enum class MacSerializeResult : uint8_t { Success, BufferTooSmall };
+enum class MacSerializeStatus : uint8_t { Success, BufferTooSmall };
 
 struct MacAddress {
   static constexpr std::size_t size{6};
@@ -19,7 +19,7 @@ struct MacAddress {
   // writes 6 bytes of mac address in destination
   // return Success if all bytes were successfully written
   // if destination.size() < 6 return BufferTooSmall
-  [[nodiscard]] MacSerializeResult
+  [[nodiscard]] MacSerializeStatus
   serialize(std::span<std::byte> destination) const noexcept;
 
   // construct mac address from first 6 bytes of source
