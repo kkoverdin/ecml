@@ -40,7 +40,7 @@ EthernetHeader::deserialize(std::span<const std::byte> source) noexcept {
   if (!src_mac.address.has_value()) {
     return {EthernetDeserializeResult::Status::BufferTooSmall};
   }
-  res.dst = *src_mac.address;
+  res.src = *src_mac.address;
   constexpr size_t ether_type_offset = 2 * MacAddress::size;
   constexpr uint8_t byte_shift = 8;
   const auto msb = std::to_integer<uint16_t>(source[ether_type_offset]);
