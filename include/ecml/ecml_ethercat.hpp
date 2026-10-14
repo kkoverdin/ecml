@@ -10,7 +10,7 @@ enum class EthercatHeaderSerializeStatus : uint8_t {
   Success,
   BufferTooSmall,
   LengthOutOfRange,
-  InvalidProtocolType
+  UnsupportedProtocolType
 };
 
 struct EthercatHeaderDeserializeResult;
@@ -40,7 +40,7 @@ struct EthercatHeaderDeserializeResult {
   enum class Status : uint8_t {
     Success,
     BufferTooSmall,
-    UnsupportedType,
+    UnsupportedProtocolType,
     ReservedBitMismatch
   };
   Status status{Status::Success};

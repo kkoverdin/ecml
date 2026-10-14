@@ -15,6 +15,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(ecml_tests
     test_mac.cpp
     test_ethernet.cpp
+    test_ethercat.cpp
 )
 
 target_link_libraries(ecml_tests

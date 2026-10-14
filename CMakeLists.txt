@@ -30,6 +30,7 @@ ecml_configure_sanitizers(ecml_sanitizers ${ECML_ENABLE_SANITIZERS})
 add_library(ecml STATIC
     src/ecml_mac.cpp 
     src/ecml_ethernet.cpp
+    src/ecml_ethercat.cpp
 )
 
 target_include_directories(ecml
