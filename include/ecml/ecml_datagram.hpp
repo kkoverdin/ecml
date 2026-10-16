@@ -33,6 +33,8 @@ enum class DatagramHeaderSerializeStatus : uint8_t {
 
 struct DatagramHeaderDeserializeResult;
 
+static constexpr uint16_t datagram_max_len = 1486;
+
 struct DatagramHeader {
   static constexpr std::size_t size{10};
 
