@@ -32,6 +32,7 @@ add_library(ecml STATIC
     src/ecml_mac.cpp 
     src/ecml_ethernet.cpp
     src/ecml_ethercat.cpp
+    src/ecml_datagram.cpp
 )
 
 target_include_directories(ecml

@@ -98,7 +98,7 @@ public:
   create(DatagramHeader header, std::span<std::byte> data, uint16_t wkc = 0);
 
   [[nodiscard]] const DatagramHeader &header() const noexcept;
-  std::span<std::byte> data() noexcept;
+  [[nodiscard]] std::span<std::byte> data() noexcept;
   [[nodiscard]] std::span<const std::byte> data() const noexcept;
   [[nodiscard]] uint16_t wkc() const noexcept;
   // 10 + data.size() + 2;
@@ -124,7 +124,8 @@ public:
   deserialize(std::span<std::byte> source) noexcept;
 
 private:
-  Datagram(DatagramHeader header, std::span<std::byte> data, uint16_t wkc = 0);
+  Datagram(const DatagramHeader &header, std::span<std::byte> data,
+           uint16_t wkc = 0);
   DatagramHeader header_;
   std::span<std::byte> data_; // Datagram doesnt owns data
   uint16_t wkc_{};
