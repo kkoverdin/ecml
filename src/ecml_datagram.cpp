@@ -89,4 +89,79 @@ DatagramHeader::deserialize(std::span<const std::byte> source) noexcept {
   return {DatagramHeaderDeserializeResult::Status::Success, header};
 }
 
+Datagram::Datagram(const DatagramHeader &header, std::span<std::byte> data,
+                   uint16_t wkc)
+    : header_{header}, data_{data}, wkc_{wkc} {}
+
+DatagramCreateResult Datagram::create(DatagramHeader header,
+                                      std::span<std::byte> data, uint16_t wkc) {
+  if (static_cast<uint8_t>(header.cmd) > max_command_type) {
+    return {DatagramCreateResult::Status::InvalidCommand};
+  }
+  if (data.size() > Datagram::max_payload_size) {
+    return {DatagramCreateResult::Status::PayloadTooLarge};
+  }
+  header.len = static_cast<uint16_t>(data.size());
+  return {DatagramCreateResult::Status::Success, Datagram{header, data, wkc}};
+}
+
+const DatagramHeader &Datagram::header() const noexcept { return header_; }
+std::span<std::byte> Datagram::data() noexcept { return data_; }
+std::span<const std::byte> Datagram::data() const noexcept { return data_; }
+uint16_t Datagram::wkc() const noexcept { return wkc_; }
+size_t Datagram::size() const noexcept {
+  return DatagramHeader::size + data_.size() + sizeof(wkc_);
+}
+
+DatagramSerializeStatus
+Datagram::serialize(std::span<std::byte> destination) const noexcept {
+  if (destination.size() < size()) {
+    return DatagramSerializeStatus::BufferTooSmall;
+  }
+  const auto status = header_.serialize(destination);
+  if (status != DatagramHeaderSerializeStatus::Success) {
+    return DatagramSerializeStatus::HeaderSerializationFailed;
+  }
+  if (data_.size() > 0) {
+    std::copy(data_.begin(), data_.end(),
+              destination.begin() + DatagramHeader::size);
+  }
+  destination[DatagramHeader::size + data_.size()] =
+      static_cast<std::byte>(wkc_ & lower_byte_mask);
+  destination[DatagramHeader::size + data_.size() + 1] =
+      static_cast<std::byte>((wkc_ >> byte_shift) & lower_byte_mask);
+  return DatagramSerializeStatus::Success;
+}
+
+DatagramDeserializeResult
+Datagram::deserialize(std::span<std::byte> source) noexcept {
+  if (source.size() < DatagramHeader::size + sizeof(uint16_t)) {
+    return {DatagramDeserializeResult::Status::BufferTooSmall};
+  }
+  const auto header_res = DatagramHeader::deserialize(source);
+  if (!header_res.header.has_value()) {
+    if (header_res.status ==
+        DatagramHeaderDeserializeResult::Status::LengthOutOfRange) {
+      return {DatagramDeserializeResult::Status::PayloadTooLarge};
+    }
+    return {DatagramDeserializeResult::Status::InvalidHeader};
+  }
+  const DatagramHeader &header = *header_res.header;
+  const size_t payload_len = header.len;
+  const size_t total_size =
+      DatagramHeader::size + payload_len + sizeof(uint16_t);
+  if (source.size() < total_size) {
+    return {DatagramDeserializeResult::Status::PayloadTruncated};
+  }
+  const std::span<std::byte> payload_span =
+      source.subspan(DatagramHeader::size, payload_len);
+  const auto wkc_lsb =
+      std::to_integer<uint16_t>(source[DatagramHeader::size + payload_len]);
+  const auto wkc_msb =
+      std::to_integer<uint16_t>(source[DatagramHeader::size + payload_len]);
+  const auto wkc = static_cast<uint16_t>(wkc_lsb | (wkc_msb << byte_shift));
+  return {DatagramDeserializeResult::Status::Success,
+          Datagram{header, payload_span, wkc}, total_size};
+}
+
 } // namespace ecml::protocol
