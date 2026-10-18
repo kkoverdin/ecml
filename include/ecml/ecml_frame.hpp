@@ -27,7 +27,7 @@ enum class FrameBuilderAddDatagramStatus : uint8_t {
   Success,
   FrameAlreadyFinalized, // calling addDatagram after finalize
   PayloadTooLarge,       // payload > 1486
-  MtuExceeded,           // datagram cant fit inside reminding buffer
+  MtuExceeded,           // datagram cant fit inside remaining buffer
   LengthLimitExceeded,   // len > 2047
   InvalidCommandCode
 };
@@ -42,29 +42,29 @@ public:
   FrameBuilder(const FrameBuilder &other) = delete;
   FrameBuilder &operator=(const FrameBuilder &other) = delete;
 
-  FrameBuilder(FrameBuilder &&other) = delete;
-  FrameBuilder &operator=(FrameBuilder &&other) = delete;
+  FrameBuilder(FrameBuilder &&other) noexcept = default;
+  FrameBuilder &operator=(FrameBuilder &&other) noexcept = default;
 
   // constructs FrameBuilder from given ethernet header and buffer
-  // if buffer.size() < 16 returns BufferTooSmall
+  // if buffer.size() < 60 returns BufferTooSmall
   // if EtherType is not 0x88A4 returns InvalidEtherType
   // otherwise returns Success
   [[nodiscard]] static FrameBuilderCreateResult
-  create(const EthernetHeader &header, std::span<std::byte> buffer);
+  create(const EthernetHeader &header, std::span<std::byte> buffer) noexcept;
 
   [[nodiscard]] FrameBuilderAddDatagramStatus
-  addDatagram(const DatagramHeader &header, std::span<std::byte> payload,
-              uint16_t wkc) noexcept;
+  addDatagram(const DatagramHeader &header, std::span<const std::byte> payload,
+              uint16_t wkc = 0) noexcept;
 
-  [[nodiscard]] FrameBuilderFinalizeResult finalize() const noexcept;
+  [[nodiscard]] FrameBuilderFinalizeResult finalize() noexcept;
 
 private:
-  FrameBuilder(std::span<std::byte> buffer) noexcept;
+  explicit FrameBuilder(std::span<std::byte> buffer) noexcept;
   std::span<std::byte> raw_frame_;
   size_t write_cursor_{FrameConstants::total_header_size};
   size_t datagram_offset_{}; // index of last added datagram
   size_t datagram_count_{};
-  bool finalyzed{false};
+  bool finalized_{false};
 };
 
 struct FrameBuilderCreateResult {
@@ -77,7 +77,7 @@ struct FrameBuilderCreateResult {
 struct FrameBuilderFinalizeResult {
   enum class Status : uint8_t { Success, EmptyFrame, FrameAlreadyFinalized };
   Status status{Status::Success};
-  std::optional<std::span<const std::byte>> frame;
+  std::optional<std::span<const std::byte>> frame{std::nullopt};
   [[nodiscard]] bool ok() const noexcept { return status == Status::Success; }
 };
 
@@ -92,8 +92,8 @@ public:
   FrameParser(const FrameParser &other) = delete;
   FrameParser &operator=(const FrameParser &other) = delete;
 
-  FrameParser(FrameParser &&other) = delete;
-  FrameParser &operator=(FrameParser &&other) = delete;
+  FrameParser(FrameParser &&other) noexcept = default;
+  FrameParser &operator=(FrameParser &&other) noexcept = default;
 
   [[nodiscard]] static FrameParserCreateResult
   create(std::span<std::byte> bytes);
