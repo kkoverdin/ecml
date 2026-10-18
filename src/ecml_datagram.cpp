@@ -122,7 +122,7 @@ Datagram::serialize(std::span<std::byte> destination) const noexcept {
   if (status != DatagramHeaderSerializeStatus::Success) {
     return DatagramSerializeStatus::HeaderSerializationFailed;
   }
-  if (data_.size() > 0) {
+  if (!data_.empty()) {
     std::copy(data_.begin(), data_.end(),
               destination.begin() + DatagramHeader::size);
   }
@@ -158,7 +158,7 @@ Datagram::deserialize(std::span<std::byte> source) noexcept {
   const auto wkc_lsb =
       std::to_integer<uint16_t>(source[DatagramHeader::size + payload_len]);
   const auto wkc_msb =
-      std::to_integer<uint16_t>(source[DatagramHeader::size + payload_len]);
+      std::to_integer<uint16_t>(source[DatagramHeader::size + payload_len + 1]);
   const auto wkc = static_cast<uint16_t>(wkc_lsb | (wkc_msb << byte_shift));
   return {DatagramDeserializeResult::Status::Success,
           Datagram{header, payload_span, wkc}, total_size};
