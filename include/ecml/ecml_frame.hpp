@@ -95,14 +95,22 @@ public:
   FrameParser(FrameParser &&other) noexcept = default;
   FrameParser &operator=(FrameParser &&other) noexcept = default;
 
+  [[nodiscard]] EthernetHeader ethernetHeader() const noexcept {
+    return eth_header_;
+  }
+
+  [[nodiscard]] EthercatHeader ethercatHeader() const noexcept {
+    return ec_header_;
+  }
+
   [[nodiscard]] static FrameParserCreateResult
-  create(std::span<std::byte> bytes);
+  create(std::span<std::byte> bytes) noexcept;
 
   [[nodiscard]] FrameParserNextDatagramResult nextDatagram() noexcept;
 
   void reset() noexcept {
     read_cursor_ = FrameConstants::total_header_size;
-    more_datagrams_ = true;
+    more_datagrams_ = (ec_header_.length > 0);
   }
 
 private:
@@ -122,10 +130,10 @@ struct FrameParserCreateResult {
     UnsupportedEtherType,
     InvalidProtocolType,
     ReservedBitMismatch,
-    PayloadTruncated // ec_header_.len > bytes.size()
+    PayloadTruncated // 16 + ec_header_.len > bytes.size()
   };
   Status status{Status::Success};
-  std::optional<FrameParser> parser;
+  std::optional<FrameParser> parser{std::nullopt};
   [[nodiscard]] bool ok() const noexcept { return status == Status::Success; }
 };
 
@@ -141,11 +149,11 @@ struct FrameParserNextDatagramResult {
     DanglingBytesAfterChain
   };
   Status status{Status::Success};
-  std::optional<Datagram> datagram;
+  std::optional<Datagram> datagram{std::nullopt};
   [[nodiscard]] bool ok() const noexcept {
     return status == Status::Success || status == Status::EndOfStream;
   }
-  [[nodiscard]] bool last() const noexcept {
+  [[nodiscard]] bool done() const noexcept {
     return status == Status::EndOfStream;
   }
 };
