@@ -119,6 +119,10 @@ FrameParser::create(std::span<std::byte> bytes) noexcept {
   const auto eth_res =
       EthernetHeader::deserialize(bytes.first(EthernetHeader::size));
   if (!eth_res.header.has_value()) {
+    if (eth_res.status ==
+        EthernetDeserializeResult::Status::UnsupportedEtherType) {
+      return {FrameParserCreateResult::Status::UnsupportedEtherType};
+    }
     return {FrameParserCreateResult::Status::BufferTooSmall};
   }
   if (eth_res.header->ether_type != ethercat_ether_type) {
@@ -188,7 +192,7 @@ FrameParserNextDatagramResult FrameParser::nextDatagram() noexcept {
   }
   read_cursor_ = next_cursor;
   more_datagrams_ = has_more;
-  return {FrameParserNextDatagramResult::Status::Success, *dg_res.datagram};
+  return {FrameParserNextDatagramResult::Status::Success, dg_res.datagram};
 }
 
 } // namespace ecml::protocol
