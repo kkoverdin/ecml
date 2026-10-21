@@ -17,6 +17,7 @@ add_executable(ecml_tests
     test_ethernet.cpp
     test_ethercat.cpp
     test_datagram.cpp
+    test_frame.cpp
 )
 
 target_link_libraries(ecml_tests
