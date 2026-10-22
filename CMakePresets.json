@@ -22,6 +22,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "BUILD_TESTING": "ON",
+                "BUILD_SAMPLES": "ON",
                 "ENABLE_SANITIZERS": "ON",
                 "ENABLE_CLANG_TIDY": "ON",
                 "WARNINGS_AS_ERRORS": "OFF"
@@ -34,6 +35,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "BUILD_TESTING": "OFF",
+                "BUILD_SAMPLES": "OFF",
                 "ENABLE_SANITIZERS": "OFF",
                 "ENABLE_CLANG_TIDY": "OFF",
                 "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
