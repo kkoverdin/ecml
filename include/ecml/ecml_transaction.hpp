@@ -93,6 +93,23 @@ private:
   static constexpr size_t max_frame_size = 1514;
   std::array<std::byte, max_frame_size> tx_buffer_{};
   std::array<std::byte, max_frame_size> rx_buffer_{};
+
+  struct BuildResult {
+    TransactionResult::Status status{TransactionResult::Status::Success};
+    std::span<const std::byte> buffer;
+  };
+  [[nodiscard]] BuildResult
+  buildTxFrame(std::span<const DatagramRequest> requests,
+               uint8_t base_idx) noexcept;
+  [[nodiscard]] TransactionResult sendFrame(std::span<const std::byte> frame,
+                                            Deadline deadline) const noexcept;
+  [[nodiscard]] TransactionResult
+  receiveAndMatchFrame(std::span<DatagramRequest> requests, uint8_t base_idx,
+                       Deadline deadline) const noexcept;
+  [[nodiscard]] std::optional<TransactionResult::Status>
+  verifyAndExtractResponse(std::span<const std::byte> rx_frame,
+                           std::span<DatagramRequest> requests,
+                           uint8_t base_idx) const noexcept;
 };
 
 } // namespace ecml::master
