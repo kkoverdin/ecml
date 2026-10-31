@@ -12,6 +12,8 @@ function(ecml_set_compiler_warnings target_name warnings_as_errors)
       -Wdouble-promotion
       -Wformat=2
       -Wimplicit-fallthrough
+      -Wconversion
+      -Wsign-conversion
   )
 
   set(GCC_WARNINGS
