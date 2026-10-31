@@ -21,7 +21,7 @@
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "ECML_BUILD_TESTING": "ON",
+                "ECML_BUILD_TESTS": "ON",
                 "ECML_ENABLE_SANITIZERS": "ON",
                 "ECML_ENABLE_CLANG_TIDY": "ON",
                 "ECML_WARNINGS_AS_ERRORS": "OFF",
@@ -34,7 +34,7 @@
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "ECML_BUILD_TESTING": "OFF",
+                "ECML_BUILD_TESTS": "OFF",
                 "ECML_ENABLE_SANITIZERS": "OFF",
                 "ECML_ENABLE_CLANG_TIDY": "OFF",
                 "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
