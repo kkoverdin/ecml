@@ -1,4 +1,4 @@
-function(ecml_configure_static_analyzers target_name)
+function(ecml_configure_static_analyzers target_name enable_clang_tidy)
   find_program(CLANG_TIDY_EXE NAMES clang-tidy clang-tidy-18 clang-tidy-17 clang-tidy-16)
 
   if(CLANG_TIDY_EXE)
