@@ -23,7 +23,7 @@ target_link_libraries(ecml_tests
         GTest::gtest_main
 )
 
-ecml_configure_static_analyzers(ecml_tests)
+ecml_configure_static_analyzers(ecml_tests ${ECML_ENABLE_CLANG_TIDY})
 
 include(GoogleTest)
 gtest_discover_tests(ecml_tests)

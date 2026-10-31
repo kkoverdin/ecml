@@ -2,7 +2,7 @@
     "version": 3,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 21,
+        "minor": 25,
         "patch": 0
     },
     "configurePresets": [
@@ -21,10 +21,10 @@
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "BUILD_TESTING": "ON",
-                "ENABLE_SANITIZERS": "ON",
-                "ENABLE_CLANG_TIDY": "ON",
-                "WARNINGS_AS_ERRORS": "OFF"
+                "ECML_BUILD_TESTING": "ON",
+                "ECML_ENABLE_SANITIZERS": "ON",
+                "ECML_ENABLE_CLANG_TIDY": "ON",
+                "ECML_WARNINGS_AS_ERRORS": "OFF"
             }
         },
         {
@@ -33,11 +33,11 @@
             "inherits": "base",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "BUILD_TESTING": "OFF",
-                "ENABLE_SANITIZERS": "OFF",
-                "ENABLE_CLANG_TIDY": "OFF",
+                "ECML_BUILD_TESTING": "OFF",
+                "ECML_ENABLE_SANITIZERS": "OFF",
+                "ECML_ENABLE_CLANG_TIDY": "OFF",
                 "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
-                "WARNINGS_AS_ERRORS": "ON"
+                "ECML_WARNINGS_AS_ERRORS": "ON"
             }
         }
     ],
