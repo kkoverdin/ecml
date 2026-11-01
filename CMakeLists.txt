@@ -29,7 +29,6 @@ ecml_configure_sanitizers(ecml_sanitizers ${ECML_ENABLE_SANITIZERS})
 
 # main lib
 add_library(ecml STATIC
-    src/ecml_rawsocket.cpp
 )
 
 target_include_directories(ecml

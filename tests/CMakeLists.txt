@@ -13,7 +13,6 @@ set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(ecml_tests
-    test_rawsocket.cpp
 )
 
 target_link_libraries(ecml_tests
