@@ -1,0 +1,7 @@
+InheritParentConfig: true
+Checks: >
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-identifier-length,
+  -bugprone-use-after-move,
+  -bugprone-unchecked-optional-access

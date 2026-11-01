@@ -14,6 +14,7 @@ option(ECML_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(ECML_ENABLE_SANITIZERS "Enable ASan and UBSan" ON)
 option(ECML_BUILD_TESTS "Build unit/integration tests" ON)
 option(ECML_ENABLE_CLANG_TIDY "Enable static analyzers" ON)
+option(ECML_BUILD_SAMPLES "Build ECML usage samples" ${PROJECT_IS_TOP_LEVEL})
 
 include(cmake/CompilerWarnings.cmake)
 include(cmake/Sanitizers.cmake)
@@ -29,6 +30,11 @@ ecml_configure_sanitizers(ecml_sanitizers ${ECML_ENABLE_SANITIZERS})
 
 # main lib
 add_library(ecml STATIC
+    src/ecml_mac.cpp 
+    src/ecml_ethernet.cpp
+    src/ecml_ethercat.cpp
+    src/ecml_datagram.cpp
+    src/ecml_frame.cpp
 )
 
 target_include_directories(ecml
@@ -51,4 +57,8 @@ ecml_configure_static_analyzers(ecml ${ECML_ENABLE_CLANG_TIDY})
 if(ECML_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+if (ECML_BUILD_SAMPLES)
+    add_subdirectory(samples)
 endif()
