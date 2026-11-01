@@ -15,7 +15,7 @@ public:
   // to prevent logical error like calling send or receive before binding
   // default ctor was deleted in favor of static member function open
   RawSocket() = delete;
-  ~RawSocket();
+  ~RawSocket() noexcept;
   RawSocket(const RawSocket &other) = delete;
   RawSocket &operator=(const RawSocket &other) = delete;
 
@@ -35,7 +35,7 @@ public:
 
 private:
   RawSocket(int fd) noexcept;
-  void close();
+  void close() noexcept;
   int fd_{-1};
 };
 
