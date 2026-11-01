@@ -57,26 +57,6 @@ TEST(RawSocketUnit, NonExistingInterfaceName) {
   EXPECT_EQ(open_result.system_errno, ENODEV);
 }
 
-TEST(RawSocketUnit, EmptyBuffers) {
-  // Arrange
-  auto open_result = ecml::network::RawSocket::open(tx_interface);
-  ASSERT_TRUE(open_result.socket.has_value());
-  const auto &socket = *open_result.socket;
-  // Act
-  const auto send_result = socket.send({});
-  std::span<std::byte> empty_dest{};
-  const auto recv_result = socket.receive(empty_dest);
-  // Assert
-  EXPECT_FALSE(send_result.ok());
-  EXPECT_EQ(send_result.status, ecml::network::SendResult::Status::EmptyBuffer);
-  EXPECT_EQ(send_result.bytes_sent, 0);
-  EXPECT_FALSE(recv_result.ok());
-  EXPECT_EQ(recv_result.status,
-            ecml::network::ReceiveResult::Status::EmptyBuffer);
-  EXPECT_EQ(recv_result.bytes_stored, 0);
-  EXPECT_EQ(recv_result.wire_length, 0);
-}
-
 TEST(RawSocketUnit, MovedFromSocketOperations) {
   // Arrange
   auto open_result = ecml::network::RawSocket::open(tx_interface);
@@ -87,17 +67,6 @@ TEST(RawSocketUnit, MovedFromSocketOperations) {
   EXPECT_TRUE(target_socket.isOpen());
   // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_FALSE(socket_source.isOpen());
-  std::array<std::byte, min_frame_size> frame{};
-  const auto send_result = socket_source.send(frame);
-  std::array<std::byte, min_frame_size> rx_buffer{};
-  const auto recv_result = socket_source.receive(rx_buffer);
-  // Assert
-  EXPECT_FALSE(send_result.ok());
-  EXPECT_EQ(send_result.status,
-            ecml::network::SendResult::Status::InvalidSocket);
-  EXPECT_FALSE(recv_result.ok());
-  EXPECT_EQ(recv_result.status,
-            ecml::network::ReceiveResult::Status::InvalidSocket);
 }
 
 TEST(RawSocketUnit, MovingCtor) {

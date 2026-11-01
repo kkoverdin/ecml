@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <arpa/inet.h>
+#include <cassert>
 #include <cerrno>
-#include <cstring>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
 #include <net/if.h>
@@ -37,12 +37,8 @@ RawSocket &RawSocket::operator=(RawSocket &&other) noexcept {
 
 bool RawSocket::isOpen() const noexcept { return fd_ >= 0; }
 SendResult RawSocket::send(std::span<const std::byte> frame) const noexcept {
-  if (!isOpen()) {
-    return {SendResult::Status::InvalidSocket};
-  }
-  if (frame.empty()) {
-    return {SendResult::Status::EmptyBuffer};
-  }
+  assert(isOpen());
+  assert(!frame.empty());
   ssize_t res = ::send(fd_, frame.data(), frame.size(), MSG_DONTWAIT);
   if (res > 0) {
     if (static_cast<size_t>(res) == frame.size()) {
@@ -69,12 +65,9 @@ SendResult RawSocket::send(std::span<const std::byte> frame) const noexcept {
 
 ReceiveResult
 RawSocket::receive(std::span<std::byte> destination) const noexcept {
-  if (!isOpen()) {
-    return {ReceiveResult::Status::InvalidSocket};
-  }
-  if (destination.empty()) {
-    return {ReceiveResult::Status::EmptyBuffer};
-  }
+  assert(isOpen());
+  assert(!destination.empty());
+
   ssize_t ret = ::recv(fd_, destination.data(), destination.size(),
                        MSG_DONTWAIT | MSG_TRUNC);
   if (ret >= 0) {
@@ -113,6 +106,13 @@ OpenResult RawSocket::open(std::string_view ifname,
     int saved_errno = errno;
     return {OpenResult::Status::SocketCreationFailed, std::nullopt,
             saved_errno};
+  }
+  int ignore = 1;
+  if (::setsockopt(file_descriptor, SOL_PACKET, PACKET_IGNORE_OUTGOING, &ignore,
+                   sizeof(ignore)) < 0) {
+    int saved_errno = errno;
+    ::close(file_descriptor);
+    return {OpenResult::Status::SetSockOptFailed, std::nullopt, saved_errno};
   }
   struct ifreq ifr {};
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)

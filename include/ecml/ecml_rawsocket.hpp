@@ -11,13 +11,11 @@ namespace ecml::network {
 
 struct SendResult {
   enum class Status : uint8_t {
-    Success,       // socket sended exactly frame.size() bytes
-    WouldBlock,    // requested operation would block
-    Interrupted,   // kernel interrupted send
-    SystemError,   // system error
-    InvalidSocket, // calling send on closed socket
-    EmptyBuffer,   // frame.size() == 0
-    BadSend        // send syscall return < frame.size()
+    Success,     // socket sended exactly frame.size() bytes
+    WouldBlock,  // requested operation would block
+    Interrupted, // kernel interrupted send
+    SystemError, // system error
+    BadSend      // send syscall return < frame.size()
   };
   Status status{Status::Success};
   size_t bytes_sent{0};
@@ -33,13 +31,11 @@ struct SendResult {
 
 struct ReceiveResult {
   enum class Status : uint8_t {
-    Success,       // frame received and fit in destination EmptyBuffer
-    Truncated,     // received frame size > destination.size()
-    WouldBlock,    // no incoming frames
-    Interrupted,   // interrupted by kernel
-    SystemError,   // system error
-    InvalidSocket, // calling receive on closed socket
-    EmptyBuffer    // destination.size() == 0
+    Success,     // frame received and fit in destination EmptyBuffer
+    Truncated,   // received frame size > destination.size()
+    WouldBlock,  // no incoming frames
+    Interrupted, // interrupted by kernel
+    SystemError  // system error
   };
   Status status{Status::Success};
   size_t bytes_stored{0};
@@ -100,7 +96,8 @@ struct OpenResult {
     InvalidInterfaceName,   // ifname is empty or ifname.size() >= IFNAMSIZ
     SocketCreationFailed,   // ::socket returned -1
     InterfaceIndexNotFound, // ::ioctl returned -1
-    BindFailed              // ::bind returned -1
+    BindFailed,             // ::bind returned -1
+    SetSockOptFailed        // ::setsockopt returned -1
   };
   Status status{Status::Success};
   std::optional<RawSocket> socket;
