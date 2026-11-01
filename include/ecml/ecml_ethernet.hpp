@@ -7,9 +7,11 @@ namespace ecml::protocol {
 enum class EthernetSerializeStatus : uint8_t { Success, BufferTooSmall };
 struct EthernetDeserializeResult;
 
+constexpr uint16_t ethercat_ether_type = 0x88A4;
+
 struct EthernetHeader {
   static constexpr std::size_t size{14};
-  static constexpr std::size_t ether_type{0x88A4};
+  std::uint16_t ether_type{ethercat_ether_type};
   MacAddress dst;
   MacAddress src;
 
