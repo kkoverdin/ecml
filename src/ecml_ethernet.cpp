@@ -8,13 +8,9 @@ EthernetHeader::serialize(std::span<std::byte> destination) const noexcept {
   if (destination.size() < EthernetHeader::size) {
     return EthernetSerializeStatus::BufferTooSmall;
   }
-  if (dst.serialize(destination) != MacSerializeStatus::Success) {
-    return EthernetSerializeStatus::BufferTooSmall;
-  }
-  if (src.serialize(destination.subspan(MacAddress::size)) !=
-      MacSerializeStatus::Success) {
-    return EthernetSerializeStatus::BufferTooSmall;
-  }
+  [[maybe_unused]] const auto status_dst = dst.serialize(destination);
+  [[maybe_unused]] const auto status_src =
+      src.serialize(destination.subspan(MacAddress::size));
   constexpr size_t ether_type_offset = 2 * MacAddress::size;
   constexpr uint8_t byte_shift = 8;
   constexpr uint8_t lower_byte_mask = 0xFF;

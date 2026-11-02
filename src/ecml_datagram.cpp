@@ -7,7 +7,6 @@ constexpr uint8_t lower_three_bits_mask = 0x07;
 constexpr uint8_t byte_shift = 8;
 constexpr uint8_t sixth_bit_mask = 0x40;
 constexpr uint8_t seventh_bit_mask = 0x80;
-constexpr uint8_t max_command_type = 0x0E;
 constexpr uint8_t reserved_bits_mask = 0x38;
 
 } // namespace
@@ -21,6 +20,9 @@ DatagramHeader::serialize(std::span<std::byte> destination) const noexcept {
   }
   if (destination.size() < DatagramHeader::size) {
     return DatagramHeaderSerializeStatus::BufferTooSmall;
+  }
+  if (!isValidCommand(cmd)) {
+    return DatagramHeaderSerializeStatus::InvalidCommand;
   }
   destination[0] = static_cast<std::byte>(static_cast<std::uint8_t>(cmd));
   destination[1] = static_cast<std::byte>(idx);
@@ -55,7 +57,7 @@ DatagramHeader::deserialize(std::span<const std::byte> source) noexcept {
   DatagramHeader header;
   if (auto command_byte = static_cast<uint8_t>(source[0]);
       command_byte > max_command_type) {
-    return {DatagramHeaderDeserializeResult::Status::UnknownCommand};
+    return {DatagramHeaderDeserializeResult::Status::InvalidCommand};
   }
   header.cmd = static_cast<CommandType>(source[0]);
   header.idx = static_cast<uint8_t>(source[1]);
@@ -69,10 +71,12 @@ DatagramHeader::deserialize(std::span<const std::byte> source) noexcept {
     return {DatagramHeaderDeserializeResult::Status::ReservedBitsMismatch};
   }
   // NOLINTNEXTLINE
-  uint16_t len = static_cast<uint16_t>(source[6]) |
-                 // NOLINTNEXTLINE
-                 ((static_cast<uint16_t>(source[7]) & lower_three_bits_mask)
-                  << byte_shift);
+  uint16_t len = static_cast<uint16_t>(
+      // NOLINTNEXTLINE
+      static_cast<uint16_t>(source[6]) |
+      // NOLINTNEXTLINE
+      ((static_cast<uint16_t>(source[7]) & lower_three_bits_mask)
+       << byte_shift));
   if (len > datagram_max_len) {
     return {DatagramHeaderDeserializeResult::Status::LengthOutOfRange};
   }
@@ -82,10 +86,11 @@ DatagramHeader::deserialize(std::span<const std::byte> source) noexcept {
   header.more_datagrams =
       // NOLINTNEXTLINE
       (static_cast<uint8_t>(source[7]) & seventh_bit_mask) != 0;
-  // NOLINTNEXTLINE
-  header.irq = static_cast<uint16_t>(source[8]) |
-               // NOLINTNEXTLINE
-               (static_cast<uint16_t>(source[9]) << byte_shift);
+  header.irq =
+      // NOLINTNEXTLINE
+      static_cast<uint16_t>(static_cast<uint16_t>(source[8]) |
+                            // NOLINTNEXTLINE
+                            (static_cast<uint16_t>(source[9]) << byte_shift));
   return {DatagramHeaderDeserializeResult::Status::Success, header};
 }
 
@@ -95,7 +100,7 @@ Datagram::Datagram(const DatagramHeader &header, std::span<std::byte> data,
 
 DatagramCreateResult Datagram::create(DatagramHeader header,
                                       std::span<std::byte> data, uint16_t wkc) {
-  if (static_cast<uint8_t>(header.cmd) > max_command_type) {
+  if (!isValidCommand(header.cmd)) {
     return {DatagramCreateResult::Status::InvalidCommand};
   }
   if (data.size() > Datagram::max_payload_size) {

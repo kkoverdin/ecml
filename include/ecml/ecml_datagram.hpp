@@ -25,10 +25,17 @@ enum class CommandType : uint8_t {
   FRMW = 0x0E  // Configured Read Multiple Write
 };
 
+constexpr uint8_t max_command_type = 0x0E;
+
+constexpr bool isValidCommand(CommandType cmd) noexcept {
+  return static_cast<uint8_t>(cmd) <= max_command_type;
+}
+
 enum class DatagramHeaderSerializeStatus : uint8_t {
   Success,
   BufferTooSmall,
-  LengthOutOfRange
+  LengthOutOfRange,
+  InvalidCommand
 };
 
 struct DatagramHeaderDeserializeResult;
@@ -66,7 +73,7 @@ struct DatagramHeaderDeserializeResult {
   enum class Status : uint8_t {
     Success,
     BufferTooSmall,
-    UnknownCommand,
+    InvalidCommand,
     LengthOutOfRange,
     ReservedBitsMismatch
   };

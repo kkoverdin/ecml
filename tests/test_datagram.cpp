@@ -107,7 +107,7 @@ TEST(DatagramHeaderUnit, DeserializeUnknownCommand) {
   ASSERT_FALSE(res.header.has_value());
   EXPECT_EQ(
       res.status,
-      ecml::protocol::DatagramHeaderDeserializeResult::Status::UnknownCommand);
+      ecml::protocol::DatagramHeaderDeserializeResult::Status::InvalidCommand);
 }
 
 TEST(DatagramHeaderUnit, DeserializeReservedBitsMismatch) {

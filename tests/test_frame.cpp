@@ -135,7 +135,7 @@ TEST(FrameBuilderUnit, AddDatagramInvalidCommandCode) {
       .cmd = static_cast<ecml::protocol::CommandType>(0x0F)};
 
   EXPECT_EQ(builder_res.builder->addDatagram(hdr, payload, 0),
-            ecml::protocol::FrameBuilderAddDatagramStatus::InvalidCommandCode);
+            ecml::protocol::FrameBuilderAddDatagramStatus::InvalidCommand);
 }
 
 TEST(FrameBuilderUnit, AddDatagramPayloadTooLarge) {
@@ -484,7 +484,7 @@ TEST(FrameParserUnit, NextDatagramUnknownCommand) {
   EXPECT_FALSE(dg_res.ok());
   EXPECT_EQ(
       dg_res.status,
-      ecml::protocol::FrameParserNextDatagramResult::Status::UnknownCommand);
+      ecml::protocol::FrameParserNextDatagramResult::Status::InvalidCommand);
 }
 
 TEST(FrameParserUnit, NextDatagramInvalidDatagramLength) {

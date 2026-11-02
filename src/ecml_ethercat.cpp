@@ -25,7 +25,7 @@ EthercatHeader::serialize(std::span<std::byte> destination) const noexcept {
   if (length > max_ethercat_length) {
     return EthercatHeaderSerializeStatus::LengthOutOfRange;
   }
-  if (type > ethercat_protocol_type) {
+  if (type != ethercat_protocol_type) {
     return EthercatHeaderSerializeStatus::UnsupportedProtocolType;
   }
   const uint16_t raw_word = (length & length_mask) | (type << type_shift);

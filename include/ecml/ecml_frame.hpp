@@ -29,7 +29,7 @@ enum class FrameBuilderAddDatagramStatus : uint8_t {
   PayloadTooLarge,       // payload > 1486
   MtuExceeded,           // datagram cant fit inside remaining buffer
   LengthLimitExceeded,   // len > 2047
-  InvalidCommandCode
+  InvalidCommand
 };
 
 struct FrameBuilderFinalizeResult;
@@ -142,7 +142,7 @@ struct FrameParserNextDatagramResult {
     Success,
     EndOfStream,
     UnexpectedEndOfPayload,
-    UnknownCommand,
+    InvalidCommand,
     InvalidDatagramLength,
     ReservedBitsMismatch,
     PrematureChainTermination,

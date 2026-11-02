@@ -3,7 +3,6 @@
 namespace {
 
 constexpr size_t min_ethernet_frame_size = 60;
-constexpr uint8_t max_command_type = 0x0E;
 constexpr size_t max_datagrams_total_bytes = 1498;
 constexpr uint8_t lower_byte_mask = 0xFF;
 constexpr uint8_t byte_shift = 8;
@@ -41,8 +40,8 @@ FrameBuilder::addDatagram(const DatagramHeader &header,
   if (finalized_) {
     return FrameBuilderAddDatagramStatus::FrameAlreadyFinalized;
   }
-  if (static_cast<uint8_t>(header.cmd) > max_command_type) {
-    return FrameBuilderAddDatagramStatus::InvalidCommandCode;
+  if (!isValidCommand(header.cmd)) {
+    return FrameBuilderAddDatagramStatus::InvalidCommand;
   }
   if (payload.size() > Datagram::max_payload_size) {
     return FrameBuilderAddDatagramStatus::PayloadTooLarge;
@@ -62,7 +61,7 @@ FrameBuilder::addDatagram(const DatagramHeader &header,
   const auto status = local_header.serialize(
       raw_frame_.subspan(write_cursor_, DatagramHeader::size));
   if (status != DatagramHeaderSerializeStatus::Success) {
-    return FrameBuilderAddDatagramStatus::InvalidCommandCode;
+    return FrameBuilderAddDatagramStatus::InvalidCommand;
   }
   std::copy(payload.begin(), payload.end(),
             raw_frame_.begin() + static_cast<std::ptrdiff_t>(write_cursor_) +
@@ -91,11 +90,8 @@ FrameBuilderFinalizeResult FrameBuilder::finalize() noexcept {
   size_t ecat_payload_len = write_cursor_ - FrameConstants::total_header_size;
   EthercatHeader header{.length = static_cast<uint16_t>(ecat_payload_len),
                         .type = 0x01};
-  const auto status =
+  [[maybe_unused]] const auto status =
       header.serialize(raw_frame_.subspan(EthernetHeader::size, 2));
-  if (status != EthercatHeaderSerializeStatus::Success) {
-    return {FrameBuilderFinalizeResult::Status::EmptyFrame};
-  }
   if (write_cursor_ < min_ethernet_frame_size) {
     std::fill(raw_frame_.begin() + static_cast<std::ptrdiff_t>(write_cursor_),
               raw_frame_.begin() + min_ethernet_frame_size, std::byte{0x00});
@@ -164,8 +160,8 @@ FrameParserNextDatagramResult FrameParser::nextDatagram() noexcept {
   if (!hdr_res.header.has_value()) {
     more_datagrams_ = false;
     switch (hdr_res.status) {
-    case DatagramHeaderDeserializeResult::Status::UnknownCommand:
-      return {FrameParserNextDatagramResult::Status::UnknownCommand};
+    case DatagramHeaderDeserializeResult::Status::InvalidCommand:
+      return {FrameParserNextDatagramResult::Status::InvalidCommand};
     case DatagramHeaderDeserializeResult::Status::ReservedBitsMismatch:
       return {FrameParserNextDatagramResult::Status::ReservedBitsMismatch};
     case DatagramHeaderDeserializeResult::Status::LengthOutOfRange:
@@ -174,14 +170,14 @@ FrameParserNextDatagramResult FrameParser::nextDatagram() noexcept {
       return {FrameParserNextDatagramResult::Status::UnexpectedEndOfPayload};
     }
   }
-  const auto dg_res = Datagram::deserialize(remaining);
-  if (!dg_res.datagram.has_value()) {
+  if (remaining.size() < DatagramHeader::size + hdr_res.header->len + 2) {
     more_datagrams_ = false;
     return {FrameParserNextDatagramResult::Status::UnexpectedEndOfPayload};
   }
-  const size_t next_cursor = read_cursor_ + dg_res.bytes_consumed;
+  const size_t next_cursor =
+      read_cursor_ + DatagramHeader::size + hdr_res.header->len + 2;
   const size_t bytes_left = bytes_.size() - next_cursor;
-  const bool has_more = dg_res.datagram->header().more_datagrams;
+  const bool has_more = hdr_res.header->more_datagrams;
   if (has_more && bytes_left == 0) {
     more_datagrams_ = false;
     return {FrameParserNextDatagramResult::Status::PrematureChainTermination};
@@ -192,7 +188,14 @@ FrameParserNextDatagramResult FrameParser::nextDatagram() noexcept {
   }
   read_cursor_ = next_cursor;
   more_datagrams_ = has_more;
-  return {FrameParserNextDatagramResult::Status::Success, dg_res.datagram};
+  size_t wkc_offset = DatagramHeader::size + hdr_res.header->len;
+  const auto wkc_lsb = std::to_integer<uint16_t>(remaining[wkc_offset]);
+  const auto wkc_msb = std::to_integer<uint16_t>(remaining[wkc_offset + 1]);
+  const auto wkc = static_cast<uint16_t>(wkc_lsb | (wkc_msb << byte_shift));
+  return {FrameParserNextDatagramResult::Status::Success,
+          Datagram::create(*hdr_res.header,
+                           remaining.subspan(DatagramHeader::size), wkc)
+              .datagram};
 }
 
 } // namespace ecml::protocol

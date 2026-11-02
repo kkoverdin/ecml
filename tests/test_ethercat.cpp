@@ -49,10 +49,16 @@ TEST(EthercatHeaderUnit, SerializeLengthOutOfRange) {
 
 TEST(EthercatHeaderUnit, SerializeUnsupportedProtocolType) {
   const ecml::protocol::EthercatHeader header{.length = 1000, .type = 0x02};
+  const ecml::protocol::EthercatHeader header_with_type_0{.length = 1000,
+                                                          .type = 0x00};
   std::array<std::byte, ecml::protocol::EthercatHeader::size> buffer{};
   const auto status = header.serialize(buffer);
   EXPECT_EQ(
       status,
+      ecml::protocol::EthercatHeaderSerializeStatus::UnsupportedProtocolType);
+  const auto status_0 = header_with_type_0.serialize(buffer);
+  EXPECT_EQ(
+      status_0,
       ecml::protocol::EthercatHeaderSerializeStatus::UnsupportedProtocolType);
 }
 
