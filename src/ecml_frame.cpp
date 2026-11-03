@@ -193,8 +193,9 @@ FrameParserNextDatagramResult FrameParser::nextDatagram() noexcept {
   const auto wkc_msb = std::to_integer<uint16_t>(remaining[wkc_offset + 1]);
   const auto wkc = static_cast<uint16_t>(wkc_lsb | (wkc_msb << byte_shift));
   return {FrameParserNextDatagramResult::Status::Success,
-          Datagram::create(*hdr_res.header,
-                           remaining.subspan(DatagramHeader::size), wkc)
+          Datagram::create(
+              *hdr_res.header,
+              remaining.subspan(DatagramHeader::size, hdr_res.header->len), wkc)
               .datagram};
 }
 

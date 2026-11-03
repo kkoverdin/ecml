@@ -24,6 +24,19 @@ ecml::protocol::EthernetHeader makeValidEthernetHeader() noexcept {
                                          std::byte{0x4D}, std::byte{0x5E}}}};
 }
 
+template <typename... Args>
+constexpr std::array<std::byte, sizeof...(Args)>
+makeArrayOfBytes(Args... args) {
+  return std::array<std::byte, sizeof...(Args)>{std::byte(args)...};
+}
+
+constexpr std::array<std::byte, 60> golden_frame = makeArrayOfBytes(
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E,
+    0x88, 0xA4, 0x1E, 0x10, 0x07, 0x01, 0x00, 0x00, 0x30, 0x01, 0x02, 0x80,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x02, 0x00, 0x00, 0x01, 0x00,
+    0x04, 0x00, 0x00, 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0x03, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
 } // namespace
 
 TEST(FrameBuilderUnit, CreateSuccessfully) {
@@ -580,4 +593,69 @@ TEST(FrameParserUnit, NextDatagramDanglingBytesAfterChain) {
   EXPECT_FALSE(dg_res.ok());
   EXPECT_EQ(dg_res.status, ecml::protocol::FrameParserNextDatagramResult::
                                Status::DanglingBytesAfterChain);
+}
+
+TEST(FrameBuilderUnit, GoldenFrameBuilderMatchesWireBytes) {
+  std::array<std::byte, min_ethernet_frame_size> buffer{};
+  auto builder_res =
+      ecml::protocol::FrameBuilder::create(makeValidEthernetHeader(), buffer);
+  ASSERT_TRUE(builder_res.ok());
+  auto &builder = *builder_res.builder;
+  const auto first_header =
+      ecml::protocol::DatagramHeader{.cmd = ecml::protocol::CommandType::BRD,
+                                     .idx = 0x01,
+                                     .address = 0x01300000,
+                                     .len = 0x02,
+                                     .more_datagrams = true,
+                                     .irq = 0x0000};
+  const std::array<std::byte, 2> first_payload = makeArrayOfBytes(0x00, 0x00);
+  [[maybe_unused]] const auto first_add_res =
+      builder.addDatagram(first_header, first_payload, 0x0000);
+  const auto second_header =
+      ecml::protocol::DatagramHeader{.cmd = ecml::protocol::CommandType::LRW,
+                                     .idx = 0x02,
+                                     .address = 0x00010000,
+                                     .len = 0x04,
+                                     .more_datagrams = false,
+                                     .irq = 0x0000};
+  const std::array<std::byte, 4> second_payload =
+      makeArrayOfBytes(0xDE, 0xAD, 0xBE, 0xEF);
+  [[maybe_unused]] const auto second_add_res =
+      builder.addDatagram(second_header, second_payload, 0x0003);
+  const auto finalize_res = builder.finalize();
+  const auto &frame = *finalize_res.frame;
+  EXPECT_TRUE(std::ranges::equal(frame, golden_frame));
+}
+
+TEST(FrameParserUnit, GoldenFrameParserExtractsExactFields) {
+  std::array<std::byte, golden_frame.size()> golden_frame_copy{golden_frame};
+  auto parser_res = ecml::protocol::FrameParser::create(golden_frame_copy);
+  ASSERT_TRUE(parser_res.ok());
+  auto &parser = *parser_res.parser;
+  const auto first_datagram_res = parser.nextDatagram();
+  const auto second_datagram_res = parser.nextDatagram();
+  const auto &first_datagram = *first_datagram_res.datagram;
+  const auto &second_datagram = *second_datagram_res.datagram;
+  const auto first_header = first_datagram.header();
+  const auto second_header = second_datagram.header();
+  EXPECT_EQ(first_datagram.wkc(), 0x0000);
+  EXPECT_EQ(first_header.cmd, ecml::protocol::CommandType::BRD);
+  EXPECT_EQ(first_header.idx, 0x01);
+  EXPECT_EQ(first_header.address, 0x01300000);
+  EXPECT_EQ(first_header.len, 0x02);
+  EXPECT_TRUE(first_header.more_datagrams);
+  EXPECT_EQ(first_header.irq, 0x0000);
+  EXPECT_TRUE(
+      std::ranges::equal(first_datagram.data(), makeArrayOfBytes(0x00, 0x00)));
+
+  EXPECT_EQ(second_datagram.wkc(), 0x0003);
+  EXPECT_EQ(second_header.cmd, ecml::protocol::CommandType::LRW);
+  EXPECT_EQ(second_header.idx, 0x02);
+  EXPECT_EQ(second_header.address, 0x00010000);
+  EXPECT_EQ(second_header.len, 0x04);
+  EXPECT_FALSE(second_header.more_datagrams);
+  EXPECT_EQ(second_header.irq, 0x0000);
+  EXPECT_TRUE(std::ranges::equal(second_datagram.data(),
+                                 makeArrayOfBytes(0xDE, 0xAD, 0xBE, 0xEF)));
+  EXPECT_TRUE(parser.nextDatagram().done());
 }
