@@ -659,3 +659,50 @@ TEST(FrameParserUnit, GoldenFrameParserExtractsExactFields) {
                                  makeArrayOfBytes(0xDE, 0xAD, 0xBE, 0xEF)));
   EXPECT_TRUE(parser.nextDatagram().done());
 }
+
+TEST(FrameParserUnit, TruncatedInsideWkc) {
+  std::array<std::byte, golden_frame.size()> golden_frame_copy{golden_frame};
+  golden_frame_copy[14] = std::byte{0x1D};
+  auto parser_res = ecml::protocol::FrameParser::create(golden_frame_copy);
+  ASSERT_TRUE(parser_res.ok());
+  auto &parser = *parser_res.parser;
+  EXPECT_TRUE(parser.nextDatagram().ok());
+  EXPECT_EQ(parser.nextDatagram().status,
+            ecml::protocol::FrameParserNextDatagramResult::Status::
+                UnexpectedEndOfPayload);
+}
+
+TEST(FrameParserUnit, SecondDatagramUnknownCommand) {
+  std::array<std::byte, golden_frame.size()> golden_frame_copy{golden_frame};
+  golden_frame_copy[30] = std::byte{0x0F};
+  auto parser_res = ecml::protocol::FrameParser::create(golden_frame_copy);
+  ASSERT_TRUE(parser_res.ok());
+  auto &parser = *parser_res.parser;
+  EXPECT_TRUE(parser.nextDatagram().ok());
+  EXPECT_EQ(
+      parser.nextDatagram().status,
+      ecml::protocol::FrameParserNextDatagramResult::Status::InvalidCommand);
+  EXPECT_TRUE(parser.nextDatagram().done());
+}
+
+TEST(FrameParserUnit, FirstDatagramLengthSwallowsSecond) {
+  std::array<std::byte, golden_frame.size()> golden_frame_copy{golden_frame};
+  golden_frame_copy[22] = std::byte{0x0C};
+  auto parser_res = ecml::protocol::FrameParser::create(golden_frame_copy);
+  ASSERT_TRUE(parser_res.ok());
+  auto &parser = *parser_res.parser;
+  EXPECT_TRUE(parser.nextDatagram().ok());
+  EXPECT_EQ(parser.nextDatagram().status,
+            ecml::protocol::FrameParserNextDatagramResult::Status::
+                UnexpectedEndOfPayload);
+}
+
+TEST(FrameParserUnit, ZeroEthercatPayloadLength) {
+  std::array<std::byte, golden_frame.size()> golden_frame_copy{golden_frame};
+  golden_frame_copy[14] = std::byte{0x00};
+  golden_frame_copy[15] = std::byte{0x10};
+  auto parser_res = ecml::protocol::FrameParser::create(golden_frame_copy);
+  ASSERT_TRUE(parser_res.ok());
+  auto &parser = *parser_res.parser;
+  EXPECT_TRUE(parser.nextDatagram().done());
+}
