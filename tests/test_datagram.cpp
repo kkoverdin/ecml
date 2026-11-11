@@ -259,7 +259,7 @@ TEST(DatagramUnit, DeserializeSuccessfully) {
   std::array<std::byte, 18> raw_frame{
       std::byte{0x01}, std::byte{0x2A}, std::byte{0x00}, std::byte{0x00},
       std::byte{0x30}, std::byte{0x01}, std::byte{0x02}, std::byte{0x00},
-      std::byte{0x00}, std::byte{0x00}, std::byte{0x01}, std::byte{0x00},
+      std::byte{0x00}, std::byte{0x00}, std::byte{0x08}, std::byte{0x00},
       std::byte{0x01}, std::byte{0x00}, std::byte{0xFF}, std::byte{0xFF},
       std::byte{0xFF}, std::byte{0xFF}};
 
@@ -280,7 +280,6 @@ TEST(DatagramUnit, DeserializeSuccessfully) {
   EXPECT_EQ(res.datagram->data().data(),
             raw_frame.data() + ecml::protocol::DatagramHeader::size);
 
-  res.datagram->data()[0] = std::byte{0x08};
   EXPECT_EQ(raw_frame[10], std::byte{0x08});
 }
 

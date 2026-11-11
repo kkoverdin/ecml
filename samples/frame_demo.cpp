@@ -47,7 +47,9 @@ bool simulateSlave(std::span<std::byte> wire_frame) noexcept {
       return false;
     }
     auto &datagram = *dg_res.datagram;
-    auto payload = datagram.data();
+    auto payload = wire_frame.subspan(current_offset +
+                                          ecml::protocol::DatagramHeader::size,
+                                      datagram.header().len);
     const auto reg_offset =
         static_cast<uint16_t>(datagram.header().address >> two_bytes);
 

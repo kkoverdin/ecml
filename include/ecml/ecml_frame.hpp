@@ -104,7 +104,7 @@ public:
   }
 
   [[nodiscard]] static FrameParserCreateResult
-  create(std::span<std::byte> bytes) noexcept;
+  create(std::span<const std::byte> bytes) noexcept;
 
   [[nodiscard]] FrameParserNextDatagramResult nextDatagram() noexcept;
 
@@ -114,9 +114,9 @@ public:
   }
 
 private:
-  FrameParser(std::span<std::byte> bytes, EthernetHeader eth,
+  FrameParser(std::span<const std::byte> bytes, EthernetHeader eth,
               EthercatHeader etc) noexcept;
-  std::span<std::byte> bytes_;
+  std::span<const std::byte> bytes_;
   EthernetHeader eth_header_;
   EthercatHeader ec_header_;
   size_t read_cursor_{FrameConstants::total_header_size};

@@ -102,10 +102,10 @@ public:
   // len field of given header is ignored
   // in returned object header_.len = static_cast<uint16_t>(data.size())
   [[nodiscard]] static DatagramCreateResult
-  create(DatagramHeader header, std::span<std::byte> data, uint16_t wkc = 0);
+  create(DatagramHeader header, std::span<const std::byte> data,
+         uint16_t wkc = 0);
 
   [[nodiscard]] const DatagramHeader &header() const noexcept;
-  [[nodiscard]] std::span<std::byte> data() noexcept;
   [[nodiscard]] std::span<const std::byte> data() const noexcept;
   [[nodiscard]] uint16_t wkc() const noexcept;
   // 10 + data.size() + 2;
@@ -128,13 +128,13 @@ public:
   // this method returns InvalidHeader
   // otherwise if source.size() < 10 + header.len + 2 returns BufferTooSmall
   [[nodiscard]] static DatagramDeserializeResult
-  deserialize(std::span<std::byte> source) noexcept;
+  deserialize(std::span<const std::byte> source) noexcept;
 
 private:
-  Datagram(const DatagramHeader &header, std::span<std::byte> data,
+  Datagram(const DatagramHeader &header, std::span<const std::byte> data,
            uint16_t wkc = 0);
   DatagramHeader header_;
-  std::span<std::byte> data_; // Datagram doesnt owns data
+  std::span<const std::byte> data_; // Datagram doesnt owns data
   uint16_t wkc_{};
 };
 

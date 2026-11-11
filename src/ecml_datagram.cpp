@@ -94,12 +94,13 @@ DatagramHeader::deserialize(std::span<const std::byte> source) noexcept {
   return {DatagramHeaderDeserializeResult::Status::Success, header};
 }
 
-Datagram::Datagram(const DatagramHeader &header, std::span<std::byte> data,
-                   uint16_t wkc)
+Datagram::Datagram(const DatagramHeader &header,
+                   std::span<const std::byte> data, uint16_t wkc)
     : header_{header}, data_{data}, wkc_{wkc} {}
 
 DatagramCreateResult Datagram::create(DatagramHeader header,
-                                      std::span<std::byte> data, uint16_t wkc) {
+                                      std::span<const std::byte> data,
+                                      uint16_t wkc) {
   if (!isValidCommand(header.cmd)) {
     return {DatagramCreateResult::Status::InvalidCommand};
   }
@@ -111,7 +112,6 @@ DatagramCreateResult Datagram::create(DatagramHeader header,
 }
 
 const DatagramHeader &Datagram::header() const noexcept { return header_; }
-std::span<std::byte> Datagram::data() noexcept { return data_; }
 std::span<const std::byte> Datagram::data() const noexcept { return data_; }
 uint16_t Datagram::wkc() const noexcept { return wkc_; }
 size_t Datagram::size() const noexcept {
@@ -139,7 +139,7 @@ Datagram::serialize(std::span<std::byte> destination) const noexcept {
 }
 
 DatagramDeserializeResult
-Datagram::deserialize(std::span<std::byte> source) noexcept {
+Datagram::deserialize(std::span<const std::byte> source) noexcept {
   if (source.size() < DatagramHeader::size + sizeof(uint16_t)) {
     return {DatagramDeserializeResult::Status::BufferTooSmall};
   }
@@ -158,7 +158,7 @@ Datagram::deserialize(std::span<std::byte> source) noexcept {
   if (source.size() < total_size) {
     return {DatagramDeserializeResult::Status::PayloadTruncated};
   }
-  const std::span<std::byte> payload_span =
+  const std::span<const std::byte> payload_span =
       source.subspan(DatagramHeader::size, payload_len);
   const auto wkc_lsb =
       std::to_integer<uint16_t>(source[DatagramHeader::size + payload_len]);
