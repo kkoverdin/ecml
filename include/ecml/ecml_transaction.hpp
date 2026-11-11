@@ -1,11 +1,16 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <chrono>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
+
+#include "ecml/ecml_frame.hpp"
+#include "ecml/ecml_rawsocket.hpp"
 
 namespace ecml::network {
 
@@ -14,7 +19,7 @@ struct ReceiveResult;
 
 template <typename T>
 concept PacketTransport =
-    requires(T transport, std::span<const std::byte> tx_buffer,
+    requires(const T transport, std::span<const std::byte> tx_buffer,
              std::span<std::byte> rx_buffer) {
       { transport.send(tx_buffer) } -> std::same_as<SendResult>;
       { transport.receive(rx_buffer) } -> std::same_as<ReceiveResult>;
@@ -87,8 +92,8 @@ private:
   static constexpr size_t mac_address_size = 6;
   // std::array instead of protocol::MacAddress until ec-frame is merged into
   // main
-  std::array<std::byte, mac_address_size> source_;
-  std::array<std::byte, mac_address_size> destination_;
+  protocol::MacAddress source_;
+  protocol::MacAddress destination_;
   uint8_t next_idx_{0};
   static constexpr size_t max_frame_size = 1514;
   std::array<std::byte, max_frame_size> tx_buffer_{};
