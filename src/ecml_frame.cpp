@@ -102,13 +102,13 @@ FrameBuilderFinalizeResult FrameBuilder::finalize() noexcept {
           raw_frame_.first(write_cursor_)};
 }
 
-FrameParser::FrameParser(std::span<std::byte> bytes, EthernetHeader eth,
+FrameParser::FrameParser(std::span<const std::byte> bytes, EthernetHeader eth,
                          EthercatHeader etc) noexcept
     : bytes_{bytes}, eth_header_{eth}, ec_header_{etc},
       more_datagrams_{etc.length > 0} {}
 
 FrameParserCreateResult
-FrameParser::create(std::span<std::byte> bytes) noexcept {
+FrameParser::create(std::span<const std::byte> bytes) noexcept {
   if (bytes.size() < FrameConstants::total_header_size) {
     return {FrameParserCreateResult::Status::BufferTooSmall};
   }
