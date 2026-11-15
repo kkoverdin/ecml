@@ -29,6 +29,13 @@ ecml_configure_sanitizers(ecml_sanitizers ${ECML_ENABLE_SANITIZERS})
 
 # main lib
 add_library(ecml STATIC
+    src/ecml_rawsocket.cpp
+)
+
+target_include_directories(ecml
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_include_directories(ecml
