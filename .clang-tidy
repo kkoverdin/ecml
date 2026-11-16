@@ -7,7 +7,8 @@ Checks: >
   performance-*,
   readability-*,
   -modernize-use-trailing-return-type,
-  -cppcoreguidelines-pro-type-reinterpret-cast
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-bounds-constant-array-index
 
 HeaderFilterRegex: 'ecml/.*'
 WarningsAsErrors: '*'
